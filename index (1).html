@@ -1,0 +1,387 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Puzzle Game 🧩</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: white;
+}
+
+.container {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(255,255,255,.15);
+    backdrop-filter: blur(15px);
+    padding: 25px;
+    border-radius: 25px;
+    text-align: center;
+    box-shadow: 0 15px 40px #2225;
+}
+
+h1 {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 13px;
+    opacity: .8;
+    margin-bottom: 25px;
+}
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+
+.stat {
+    background: #ffffff25;
+    padding: 12px;
+    border-radius: 12px;
+    flex: 1;
+}
+
+.stat p {
+    font-size: 11px;
+    opacity: .8;
+}
+
+.stat h2 {
+    font-size: 22px;
+    margin-top: 5px;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 9px;
+    background: #ffffff30;
+    padding: 10px;
+    border-radius: 17px;
+}
+
+.tile {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 12px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #6842a2;
+    background: linear-gradient(145deg,#ffffff,#e5ddff);
+    box-shadow: 0 4px 8px #2223;
+    cursor: pointer;
+    transition: transform .15s, background .2s;
+}
+
+.tile:active {
+    transform: scale(.92);
+}
+
+.tile:hover {
+    background: #ffe3f5;
+}
+
+.tile.empty {
+    background: #ffffff15;
+    box-shadow: none;
+    cursor: default;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+button.control {
+    flex: 1;
+    border: none;
+    padding: 13px 8px;
+    border-radius: 12px;
+    background: #ffca65;
+    color: #56317d;
+    font-weight: bold;
+    cursor: pointer;
+    transition: .2s;
+}
+
+button.control:hover {
+    transform: translateY(-3px);
+    background: #ffe09b;
+}
+
+.message {
+    min-height: 30px;
+    margin-top: 20px;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.footer {
+    font-size: 11px;
+    opacity: .7;
+    margin-top: 15px;
+}
+
+@media(max-width:350px) {
+    .container { padding: 15px; }
+    .tile { font-size: 24px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>🧩 Mini Puzzle</h1>
+
+    <p class="subtitle">
+        Susun angka dari 1 sampai 8!
+    </p>
+
+    <div class="stats">
+
+        <div class="stat">
+            <p>LANGKAH</p>
+            <h2 id="moves">0</h2>
+        </div>
+
+        <div class="stat">
+            <p>WAKTU</p>
+            <h2 id="timer">00:00</h2>
+        </div>
+
+    </div>
+
+    <div class="board" id="board"></div>
+
+    <div class="buttons">
+
+        <button class="control" onclick="shuffleGame()">
+            🔀 Acak
+        </button>
+
+        <button class="control" onclick="resetGame()">
+            🔄 Ulangi
+        </button>
+
+    </div>
+
+    <div class="message" id="message">
+        Ayo mulai bermain! 🎮
+    </div>
+
+    <div class="footer">
+        MINI PUZZLE GAME • HAVE FUN!
+    </div>
+
+</div>
+
+<script>
+
+let numbers = [];
+let moves = 0;
+let seconds = 0;
+let timerInterval = null;
+let started = false;
+let finished = false;
+
+const board = document.getElementById("board");
+
+const solved = [1,2,3,4,5,6,7,8,0];
+
+function drawBoard() {
+
+    board.innerHTML = "";
+
+    numbers.forEach((number,index) => {
+
+        const tile = document.createElement("button");
+
+        tile.className = "tile";
+
+        if(number === 0) {
+
+            tile.classList.add("empty");
+            tile.textContent = "";
+
+        } else {
+
+            tile.textContent = number;
+
+            tile.addEventListener("click", () => {
+                moveTile(index);
+            });
+
+        }
+
+        board.appendChild(tile);
+
+    });
+
+}
+
+function moveTile(index) {
+
+    if(finished) return;
+
+    const emptyIndex = numbers.indexOf(0);
+
+    const row = Math.floor(index / 3);
+    const col = index % 3;
+
+    const emptyRow = Math.floor(emptyIndex / 3);
+    const emptyCol = emptyIndex % 3;
+
+    const distance =
+        Math.abs(row-emptyRow) +
+        Math.abs(col-emptyCol);
+
+    if(distance !== 1) return;
+
+    if(!started) startTimer();
+
+    [numbers[index],numbers[emptyIndex]] =
+    [numbers[emptyIndex],numbers[index]];
+
+    moves++;
+
+    document.getElementById("moves").textContent = moves;
+
+    drawBoard();
+
+    checkWin();
+
+}
+
+function startTimer() {
+
+    started = true;
+
+    timerInterval = setInterval(() => {
+
+        seconds++;
+
+        const min = Math.floor(seconds/60);
+        const sec = seconds%60;
+
+        document.getElementById("timer").textContent =
+            String(min).padStart(2,"0") + ":" +
+            String(sec).padStart(2,"0");
+
+    },1000);
+
+}
+
+function stopTimer() {
+
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+}
+
+function shuffleGame() {
+
+    stopTimer();
+
+    numbers = [...solved];
+
+    moves = 0;
+    seconds = 0;
+    started = false;
+    finished = false;
+
+    document.getElementById("moves").textContent = "0";
+    document.getElementById("timer").textContent = "00:00";
+    document.getElementById("message").textContent =
+        "Ayo mulai bermain! 🎮";
+
+    // Acak dengan gerakan legal agar puzzle selalu solvable
+
+    let previousEmpty = -1;
+
+    for(let i=0;i<200;i++) {
+
+        const empty = numbers.indexOf(0);
+
+        let options = [];
+
+        if(empty%3 > 0) options.push(empty-1);
+        if(empty%3 < 2) options.push(empty+1);
+        if(empty >= 3) options.push(empty-3);
+        if(empty < 6) options.push(empty+3);
+
+        options = options.filter(
+            x => x !== previousEmpty
+        );
+
+        if(options.length === 0) continue;
+
+        const next =
+            options[Math.floor(Math.random()*options.length)];
+
+        previousEmpty = empty;
+
+        [numbers[empty],numbers[next]] =
+        [numbers[next],numbers[empty]];
+
+    }
+
+    if(numbers.every((n,i) => n === solved[i])) {
+        shuffleGame();
+        return;
+    }
+
+    drawBoard();
+
+}
+
+function resetGame() {
+
+    shuffleGame();
+
+}
+
+function checkWin() {
+
+    if(numbers.every((n,i) => n === solved[i])) {
+
+        finished = true;
+
+        stopTimer();
+
+        document.getElementById("message").innerHTML =
+            "🏆 SELAMAT! PUZZLE BERHASIL DISUSUN! 🎉";
+
+    }
+
+}
+
+// Mulai permainan otomatis
+
+shuffleGame();
+
+</script>
+
+</body>
+</html>
